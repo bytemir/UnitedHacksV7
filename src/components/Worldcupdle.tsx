@@ -111,8 +111,12 @@ const STADIUM_BG =
 
 const LOCAL_FACE_DEFAULT = "/faces/default.png";
 
-function localFaceUrl(espnId: string): string {
-  return `/faces/${espnId}.png`;
+function getPlayerFaceSrc(
+  playerItem?: { espnId?: string; espn_id?: string } | null,
+  fallbackEspnId?: string,
+): string {
+  const resolvedEspnId = playerItem?.espnId ?? playerItem?.espn_id ?? fallbackEspnId;
+  return resolvedEspnId ? `/faces/${resolvedEspnId}.png` : LOCAL_FACE_DEFAULT;
 }
 
 function handleLocalFaceError(
@@ -128,18 +132,17 @@ const HEADSHOT_IMG_CLASS =
   "w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-slate-700/50 flex-shrink-0";
 
 function PlayerHeadshot({
-  player,
+  playerItem,
   espnId,
   alt,
   className = "",
 }: {
-  player?: Player;
+  playerItem?: { espnId?: string; espn_id?: string } | null;
   espnId?: string;
   alt: string;
   className?: string;
 }) {
-  const resolvedEspnId = player?.espnId ?? espnId;
-  const src = resolvedEspnId ? `/faces/${resolvedEspnId}.png` : LOCAL_FACE_DEFAULT;
+  const src = getPlayerFaceSrc(playerItem, espnId);
 
   return (
     <img
@@ -733,7 +736,7 @@ function PlayerCard({
           </div>
         ) : (
           <>
-            <PlayerHeadshot player={player} alt={player!.name} />
+            <PlayerHeadshot playerItem={player} alt={player!.name} />
             <span
               title={player!.name}
               className={`${PLAYER_NAME_CLASS} min-w-0 normal-case ${theme.playerName}`}
@@ -1124,7 +1127,7 @@ function PostGameModal({
         <div
           className={`mx-auto mt-4 flex max-w-[260px] flex-col items-center rounded-sm border p-4 ${theme.gameOverCard}`}
         >
-          <PlayerHeadshot player={player} alt={player.name} />
+          <PlayerHeadshot playerItem={player} alt={player.name} />
           <p className={`mt-2 truncate text-base font-bold sm:text-lg ${nameClass}`}>
             {player.name}
           </p>
@@ -1339,7 +1342,7 @@ function BlurMysteryFrame({
         className={`relative overflow-hidden rounded-2xl border-2 p-1.5 shadow-2xl ${theme.blurFrame}`}
       >
         <img
-          src={localFaceUrl(player.espnId)}
+          src={getPlayerFaceSrc(player)}
           alt="Mystery player"
           loading="eager"
           decoding="async"
@@ -1842,7 +1845,7 @@ export default function Worldcupdle() {
                         ) : (
                           <>
                             <PlayerHeadshot
-                              player={player}
+                              playerItem={player}
                               alt={player.name}
                               className="h-7 w-7 sm:h-8 sm:w-8"
                             />
