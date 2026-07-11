@@ -111,25 +111,18 @@ const STADIUM_BG =
 
 const LOCAL_FACE_DEFAULT = "/faces/default.png";
 
-function getPlayerFaceSrc(
+function getPlayerFaceCandidates(
   playerItem?: { espnId?: string; espn_id?: string } | null,
   fallbackEspnId?: string,
-): string {
+): string[] {
   const resolvedEspnId = playerItem?.espnId ?? playerItem?.espn_id ?? fallbackEspnId;
-  return resolvedEspnId ? `/faces/${resolvedEspnId}.png` : LOCAL_FACE_DEFAULT;
-}
+  if (!resolvedEspnId) return [LOCAL_FACE_DEFAULT];
 
-function getPlayerFaceSrcFromPlayer(player?: Player | null): string {
-  return getPlayerFaceSrc(player, player?.espnId);
-}
-
-function handleLocalFaceError(
-  e: React.SyntheticEvent<HTMLImageElement, Event>,
-) {
-  const img = e.target as HTMLImageElement;
-  if (!img.src.endsWith("/faces/default.png")) {
-    img.src = "/faces/default.png";
-  }
+  return [
+    `/faces/${resolvedEspnId}.png`,
+    `/faces/${resolvedEspnId}.PNG`,
+    LOCAL_FACE_DEFAULT,
+  ];
 }
 
 const HEADSHOT_IMG_CLASS =
@@ -140,22 +133,57 @@ function PlayerHeadshot({
   espnId,
   alt,
   className = "",
+  style,
 }: {
   playerItem?: { espnId?: string; espn_id?: string } | null;
   espnId?: string;
   alt: string;
   className?: string;
+  style?: React.CSSProperties;
 }) {
-  const src = getPlayerFaceSrc(playerItem, espnId);
+  const candidates = useMemo(
+    () => getPlayerFaceCandidates(playerItem, espnId),
+    [playerItem?.espnId, playerItem?.espn_id, espnId],
+  );
+  const [attemptIndex, setAttemptIndex] = useState(0);
+  const [hasFailed, setHasFailed] = useState(false);
+
+  useEffect(() => {
+    setAttemptIndex(0);
+    setHasFailed(false);
+  }, [candidates.join("|")]);
+
+  const handleImageError = useCallback(() => {
+    if (hasFailed) return;
+
+    if (attemptIndex < candidates.length - 1) {
+      setAttemptIndex((current) => current + 1);
+      return;
+    }
+
+    setHasFailed(true);
+  }, [attemptIndex, candidates.length, hasFailed]);
+
+  if (hasFailed) {
+    return (
+      <div
+        className={`${HEADSHOT_IMG_CLASS} ${className} items-center justify-center bg-slate-800/80`}
+        style={style}
+      >
+        <User className="h-3.5 w-3.5 text-slate-400" />
+      </div>
+    );
+  }
 
   return (
     <img
-      src={src}
+      src={candidates[attemptIndex]}
       alt={alt}
       loading="lazy"
       decoding="async"
-      onError={handleLocalFaceError}
+      onError={handleImageError}
       className={`${HEADSHOT_IMG_CLASS} ${className}`}
+      style={style}
     />
   );
 }
@@ -729,8 +757,6 @@ function PlayerCard({
   empty?: boolean;
   theme: ThemeClasses;
 }) {
-  const faceSrc = getPlayerFaceSrcFromPlayer(player);
-
   return (
     <div className="min-w-0 overflow-hidden">
       <div className="flex h-9 w-full min-w-0 flex-row items-center gap-2 overflow-hidden rounded-sm border border-transparent bg-transparent px-2 py-2 shadow-none sm:h-10 sm:py-2.5">
@@ -742,14 +768,7 @@ function PlayerCard({
           </div>
         ) : (
           <>
-            <img
-              src={faceSrc}
-              alt={player!.name}
-              loading="lazy"
-              decoding="async"
-              onError={handleLocalFaceError}
-              className={`${HEADSHOT_IMG_CLASS}`}
-            />
+            <PlayerHeadshot playerItem={player} alt={player!.name} />
             <span
               title={player!.name}
               className={`${PLAYER_NAME_CLASS} min-w-0 normal-case ${theme.playerName}`}
@@ -1354,14 +1373,11 @@ function BlurMysteryFrame({
       <div
         className={`relative overflow-hidden rounded-2xl border-2 p-1.5 shadow-2xl ${theme.blurFrame}`}
       >
-        <img
-          src={getPlayerFaceSrc(player)}
+        <PlayerHeadshot
+          playerItem={player}
           alt="Mystery player"
-          loading="eager"
-          decoding="async"
-          onError={handleLocalFaceError}
-          style={{ filter: blurPx > 0 ? `blur(${blurPx}px)` : "blur(0px)" }}
           className="h-28 w-28 rounded-xl object-cover transition-[filter] duration-500 ease-out sm:h-36 sm:w-36"
+          style={{ filter: blurPx > 0 ? `blur(${blurPx}px)` : "blur(0px)" }}
         />
         {gameState === "PLAYING" && (
           <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent px-2 py-1 text-center">
