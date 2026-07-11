@@ -119,6 +119,10 @@ function getPlayerFaceSrc(
   return resolvedEspnId ? `/faces/${resolvedEspnId}.png` : LOCAL_FACE_DEFAULT;
 }
 
+function getPlayerFaceSrcFromPlayer(player?: Player | null): string {
+  return getPlayerFaceSrc(player, player?.espnId);
+}
+
 function handleLocalFaceError(
   e: React.SyntheticEvent<HTMLImageElement, Event>,
 ) {
@@ -725,6 +729,8 @@ function PlayerCard({
   empty?: boolean;
   theme: ThemeClasses;
 }) {
+  const faceSrc = getPlayerFaceSrcFromPlayer(player);
+
   return (
     <div className="min-w-0 overflow-hidden">
       <div className="flex h-9 w-full min-w-0 flex-row items-center gap-2 overflow-hidden rounded-sm border border-transparent bg-transparent px-2 py-2 shadow-none sm:h-10 sm:py-2.5">
@@ -736,7 +742,14 @@ function PlayerCard({
           </div>
         ) : (
           <>
-            <PlayerHeadshot playerItem={player} alt={player!.name} />
+            <img
+              src={faceSrc}
+              alt={player!.name}
+              loading="lazy"
+              decoding="async"
+              onError={handleLocalFaceError}
+              className={`${HEADSHOT_IMG_CLASS}`}
+            />
             <span
               title={player!.name}
               className={`${PLAYER_NAME_CLASS} min-w-0 normal-case ${theme.playerName}`}
@@ -1469,7 +1482,7 @@ export default function Worldcupdle() {
         } else {
           clearFlashTimeout();
           setTimeAttackGuessCount((c) => c + 1);
-          setFlashGuess({ player, comparison });
+          setFlashGuess({ player: { ...player }, comparison });
           setFreshGuessId(player.id);
           flashTimeoutRef.current = setTimeout(() => {
             setFlashGuess(null);
@@ -1487,7 +1500,8 @@ export default function Worldcupdle() {
       setFreshGuessId(player.id);
 
       setGuesses((prev) => {
-        const next = [...prev, { player, comparison }];
+        const nextGuessPlayer = { ...player };
+        const next = [...prev, { player: nextGuessPlayer, comparison }];
         const lost = !won && next.length >= maxGuesses;
 
         if (won) {
