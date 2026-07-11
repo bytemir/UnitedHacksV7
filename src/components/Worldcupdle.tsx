@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -109,65 +109,27 @@ const EMPTY_STATS: GameStats = {
 const STADIUM_BG =
   "https://images.unsplash.com/photo-1459865264687-595d652de67e?auto=format&fit=crop&w=2400&q=80";
 
-const LOCAL_FACE_DEFAULT = "/faces/default.png";
-
-function getPlayerFaceCandidates(
-  playerItem?: { espnId?: string; espn_id?: string } | null,
-  fallbackEspnId?: string,
-): string[] {
-  const resolvedEspnId = playerItem?.espnId ?? playerItem?.espn_id ?? fallbackEspnId;
-  if (!resolvedEspnId) return [LOCAL_FACE_DEFAULT];
-
-  return [
-    `/faces/${resolvedEspnId}.png`,
-    `/faces/${resolvedEspnId}.PNG`,
-    LOCAL_FACE_DEFAULT,
-  ];
-}
+const PLAYER_FALLBACK_SVG =
+  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2'/><circle cx='12' cy='7' r='4'/></svg>";
 
 const HEADSHOT_IMG_CLASS =
   "w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-slate-700/50 flex-shrink-0";
 
-function PlayerHeadshot({
-  playerItem,
+const PlayerFaceImage = React.memo(function PlayerFaceImage({
   espnId,
-  alt,
+  alt = "Player face",
   className = "",
   style,
 }: {
-  playerItem?: { espnId?: string; espn_id?: string } | null;
   espnId?: string;
-  alt: string;
+  alt?: string;
   className?: string;
   style?: React.CSSProperties;
 }) {
-  const candidates = useMemo(
-    () => getPlayerFaceCandidates(playerItem, espnId),
-    [playerItem?.espnId, playerItem?.espn_id, espnId],
-  );
-  const [attemptIndex, setAttemptIndex] = useState(0);
-  const [hasFailed, setHasFailed] = useState(false);
-
-  useEffect(() => {
-    setAttemptIndex(0);
-    setHasFailed(false);
-  }, [candidates.join("|")]);
-
-  const handleImageError = useCallback(() => {
-    if (hasFailed) return;
-
-    if (attemptIndex < candidates.length - 1) {
-      setAttemptIndex((current) => current + 1);
-      return;
-    }
-
-    setHasFailed(true);
-  }, [attemptIndex, candidates.length, hasFailed]);
-
-  if (hasFailed) {
+  if (!espnId) {
     return (
       <div
-        className={`${HEADSHOT_IMG_CLASS} ${className} items-center justify-center bg-slate-800/80`}
+        className={`flex items-center justify-center rounded-full bg-slate-800/80 ${className}`}
         style={style}
       >
         <User className="h-3.5 w-3.5 text-slate-400" />
@@ -175,18 +137,29 @@ function PlayerHeadshot({
     );
   }
 
+  const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    const target = event.currentTarget;
+    if (!target.src.endsWith(".PNG")) {
+      target.src = `/faces/${espnId}.PNG`;
+    } else {
+      target.src = PLAYER_FALLBACK_SVG;
+    }
+  };
+
   return (
     <img
-      src={candidates[attemptIndex]}
+      src={`/faces/${espnId}.png`}
       alt={alt}
       loading="lazy"
       decoding="async"
       onError={handleImageError}
-      className={`${HEADSHOT_IMG_CLASS} ${className}`}
+      className={`rounded-full object-cover border border-slate-700 ${className}`}
       style={style}
     />
   );
-}
+});
+
+PlayerFaceImage.displayName = "PlayerFaceImage";
 
 const MAX_GUESSES = 6;
 const TRANSFER_WINDOW_MAX_GUESSES = 3;
@@ -768,7 +741,7 @@ function PlayerCard({
           </div>
         ) : (
           <>
-            <PlayerHeadshot playerItem={player} alt={player!.name} />
+            <PlayerFaceImage espnId={player?.espnId} alt={player!.name} className={HEADSHOT_IMG_CLASS} />
             <span
               title={player!.name}
               className={`${PLAYER_NAME_CLASS} min-w-0 normal-case ${theme.playerName}`}
@@ -1159,7 +1132,7 @@ function PostGameModal({
         <div
           className={`mx-auto mt-4 flex max-w-[260px] flex-col items-center rounded-sm border p-4 ${theme.gameOverCard}`}
         >
-          <PlayerHeadshot playerItem={player} alt={player.name} />
+          <PlayerFaceImage espnId={player.espnId} alt={player.name} className={HEADSHOT_IMG_CLASS} />
           <p className={`mt-2 truncate text-base font-bold sm:text-lg ${nameClass}`}>
             {player.name}
           </p>
@@ -1373,8 +1346,8 @@ function BlurMysteryFrame({
       <div
         className={`relative overflow-hidden rounded-2xl border-2 p-1.5 shadow-2xl ${theme.blurFrame}`}
       >
-        <PlayerHeadshot
-          playerItem={player}
+        <PlayerFaceImage
+          espnId={player.espnId}
           alt="Mystery player"
           className="h-28 w-28 rounded-xl object-cover transition-[filter] duration-500 ease-out sm:h-36 sm:w-36"
           style={{ filter: blurPx > 0 ? `blur(${blurPx}px)` : "blur(0px)" }}
@@ -1874,8 +1847,8 @@ export default function Worldcupdle() {
                           </span>
                         ) : (
                           <>
-                            <PlayerHeadshot
-                              playerItem={player}
+                            <PlayerFaceImage
+                              espnId={player.espnId}
                               alt={player.name}
                               className="h-7 w-7 sm:h-8 sm:w-8"
                             />
