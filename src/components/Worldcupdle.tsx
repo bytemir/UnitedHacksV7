@@ -128,15 +128,18 @@ const HEADSHOT_IMG_CLASS =
   "w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-slate-700/50 flex-shrink-0";
 
 function PlayerHeadshot({
+  player,
   espnId,
   alt,
   className = "",
 }: {
+  player?: Player;
   espnId?: string;
   alt: string;
   className?: string;
 }) {
-  const src = espnId ? localFaceUrl(espnId) : LOCAL_FACE_DEFAULT;
+  const resolvedEspnId = player?.espnId ?? espnId;
+  const src = resolvedEspnId ? `/faces/${resolvedEspnId}.png` : LOCAL_FACE_DEFAULT;
 
   return (
     <img
@@ -730,7 +733,7 @@ function PlayerCard({
           </div>
         ) : (
           <>
-            <PlayerHeadshot espnId={player!.espnId} alt={player!.name} />
+            <PlayerHeadshot player={player} alt={player!.name} />
             <span
               title={player!.name}
               className={`${PLAYER_NAME_CLASS} min-w-0 normal-case ${theme.playerName}`}
@@ -1121,7 +1124,7 @@ function PostGameModal({
         <div
           className={`mx-auto mt-4 flex max-w-[260px] flex-col items-center rounded-sm border p-4 ${theme.gameOverCard}`}
         >
-          <PlayerHeadshot espnId={player.espnId} alt={player.name} />
+          <PlayerHeadshot player={player} alt={player.name} />
           <p className={`mt-2 truncate text-base font-bold sm:text-lg ${nameClass}`}>
             {player.name}
           </p>
@@ -1839,7 +1842,7 @@ export default function Worldcupdle() {
                         ) : (
                           <>
                             <PlayerHeadshot
-                              espnId={player.espnId}
+                              player={player}
                               alt={player.name}
                               className="h-7 w-7 sm:h-8 sm:w-8"
                             />
