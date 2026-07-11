@@ -109,11 +109,20 @@ const EMPTY_STATS: GameStats = {
 const STADIUM_BG =
   "https://images.unsplash.com/photo-1459865264687-595d652de67e?auto=format&fit=crop&w=2400&q=80";
 
-const PLAYER_FALLBACK_SVG =
-  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2'/><circle cx='12' cy='7' r='4'/></svg>";
-
 const HEADSHOT_IMG_CLASS =
   "w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-slate-700/50 flex-shrink-0";
+
+function getAssetBaseUrl() {
+  return typeof window !== "undefined" ? window.location.origin : "";
+}
+
+function buildPlayerFaceImageUrl(espnId?: string) {
+  return `${getAssetBaseUrl()}/faces/${espnId}.png`;
+}
+
+function buildDefaultImageUrl() {
+  return `${getAssetBaseUrl()}/default.png`;
+}
 
 const PlayerFaceImage = React.memo(function PlayerFaceImage({
   espnId,
@@ -139,16 +148,16 @@ const PlayerFaceImage = React.memo(function PlayerFaceImage({
 
   const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
     const target = event.currentTarget;
-    if (!target.src.endsWith(".PNG")) {
-      target.src = `/faces/${espnId}.PNG`;
-    } else {
-      target.src = PLAYER_FALLBACK_SVG;
+    const fallbackUrl = buildDefaultImageUrl();
+
+    if (target.currentSrc !== fallbackUrl && target.src !== fallbackUrl) {
+      target.src = fallbackUrl;
     }
   };
 
   return (
     <img
-      src={`/faces/${espnId}.png`}
+      src={buildPlayerFaceImageUrl(espnId)}
       alt={alt}
       loading="lazy"
       decoding="async"
